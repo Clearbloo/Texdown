@@ -13,20 +13,24 @@ import (
 func main() {
 	var inputPath string
 	var outputPath string
-	var latexTemplateFile = "template.tex"
+	var latexTemplateFile string
 
-	flag.StringVar(&inputPath, "src", "", "The markdown file to compile")
-	flag.StringVar(&outputPath, "out", "", "The latex file name")
+	flag.StringVar(&inputPath, "src", "", "The path to the markdown file to compile")
+	flag.StringVar(&outputPath, "out", "", "The latex file path")
+	flag.StringVar(&latexTemplateFile, "template", "", "The latex template path")
 	flag.Parse()
 
 	if inputPath == "" {
-		log.Fatal("No file provided")
+		log.Fatal("No markdown file provided, use -src")
 	}
 
 	if outputPath == "" {
 		base_name := strings.Split(inputPath, ".")[0]
 		outputPath = base_name + ".tex"
 		fmt.Println("No output file provided, using markdown name:", outputPath)
+	}
+	if latexTemplateFile == "" {
+		log.Fatal("No template provided, use -template")
 	}
 
 	basePath, err := os.Getwd()
