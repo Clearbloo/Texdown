@@ -4,98 +4,69 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"os"
-	"regexp"
+	"path/filepath"
 	"strings"
 )
 
 func main() {
-	var inputFile string
-	var outputFile string
+	var inputPath string
+	var outputPath string
+	var latexTemplateFile = "template.tex"
 
-	flag.StringVar(&inputFile, "input", "", "The markdown file to compile")
+	flag.StringVar(&inputPath, "src", "", "The markdown file to compile")
+	flag.StringVar(&outputPath, "out", "", "The latex file name")
 	flag.Parse()
 
-	if inputFile == "" {
-		fmt.Println("No file provided. Use the -input flag")
-		os.Exit(1)
+	if inputPath == "" {
+		log.Fatal("No file provided")
 	}
 
-	flag.StringVar(&inputFile, "output", "", "The latex file name")
-	flag.Parse()
-
-	if outputFile == "" {
-		fmt.Println("No output file provided, using markdown name")
-		base_name := strings.Split(inputFile, ".")[0]
-		outputFile = base_name + ".tex"
+	if outputPath == "" {
+		base_name := strings.Split(inputPath, ".")[0]
+		outputPath = base_name + ".tex"
+		fmt.Println("No output file provided, using markdown name:", outputPath)
 	}
 
-	// Open input file
-	inFile, err := os.Open(inputFile)
+	basePath, err := os.Getwd()
 	if err != nil {
-		fmt.Println("Error opening input file:", err)
-		return
+		log.Fatal(err)
 	}
-	defer inFile.Close()
 
-	// Open output file
-	outFile, err := os.Create(outputFile)
+	inputPath = filepath.Join(basePath, inputPath)
+
+	// Read the LaTeX template
+	templateContent, err := os.ReadFile(latexTemplateFile)
 	if err != nil {
-		fmt.Println("Error creating output file:", err)
-		return
+		log.Fatal("Error reading LaTeX template file:", err)
 	}
-	defer outFile.Close()
 
-	writer := bufio.NewWriter(outFile)
+	if _, err := os.Stat(outputPath); err == nil {
+		log.Fatal("output file already exists", err)
+	}
+
+	// Create the output file to write to
+	outputFile, err := os.Create(outputPath)
+	if err != nil {
+		log.Fatal("Error creating output file:", err)
+	}
+	defer outputFile.Close()
+
+	writer := bufio.NewWriter(outputFile)
 	defer writer.Flush()
 
-	// Write LaTeX document class and start
-	// TODO - Make this a template
-	writer.WriteString("\\documentclass{book}\n\\begin{document}\n")
+	// Write the template up to \begin{document}
+	writer.WriteString(string(templateContent))
 
-	// Read input file line by line
-	scanner := bufio.NewScanner(inFile)
-	for scanner.Scan() {
-		line := scanner.Text()
-		latexLine := convertToLatex(line)
-		writer.WriteString(latexLine + "\n")
+	// Read and write the markdown file to LaTex
+	latexBody, err := CompileToString(inputPath)
+	if err != nil {
+		// Input file didn't open correctly
+		log.Fatal("Error opening input file:", err)
 	}
+	writer.WriteString(latexBody + "\n")
 
 	// End the document
 	writer.WriteString("\\end{document}\n")
-
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading input file:", err)
-	}
-}
-
-func convertToLatex(line string) string {
-	// Header conversion
-	if strings.HasPrefix(line, "# ") {
-		return "\\chapter{" + strings.TrimPrefix(line, "# ") + "}"
-	} else if strings.HasPrefix(line, "## ") {
-		return "\\section{" + strings.TrimPrefix(line, "## ") + "}"
-	} else if strings.HasPrefix(line, "### ") {
-		return "\\subsection{" + strings.TrimPrefix(line, "### ") + "}"
-	}
-
-	// Inline math conversion
-	line = convertInlineMath(line)
-
-	// Block math conversion
-	line = convertBlockMath(line)
-
-	// Other conversions can be added here
-
-	return line
-}
-
-func convertInlineMath(line string) string {
-	re := regexp.MustCompile(`\$\$(.*?)\$\$`)
-	return re.ReplaceAllString(line, `\[ $1 \]`)
-}
-
-func convertBlockMath(line string) string {
-	re := regexp.MustCompile(`\$(.*?)\$`)
-	return re.ReplaceAllString(line, `\( $1 \)`)
 }
