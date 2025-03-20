@@ -15,6 +15,9 @@ The idea is that you can segment your book however you like. I like using separa
 ## Current status
 Only have a bare minimum example that converts simple markdown
 
+# Known issues
+When passing the src as `./foo.md` rather than `foo.md` the inferred output is split on the first period, which outputs on file `.tex`
+
 ## Todo
 - [ ] Remove the need for a flag, and just pass a positional argument
 - [ ] Add multiline math compilation
