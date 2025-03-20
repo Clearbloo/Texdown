@@ -1,3 +1,3 @@
-module github.com/Clearbloo/Texdown
+module github.com/Clearbloo/texdown
 
 go 1.22.3

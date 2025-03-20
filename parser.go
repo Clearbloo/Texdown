@@ -10,7 +10,6 @@ import (
 
 // CompileToString converts a markdown file to LaTeX
 func CompileToString(inputFile string) (string, error) {
-
 	// Open input file
 	inFile, err := os.Open(inputFile)
 	if err != nil {
